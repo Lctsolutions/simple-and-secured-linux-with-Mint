@@ -1,4 +1,4 @@
-English version [below](#a-pretty-secure-and-usuable-Linux-distribution) !
+English version [below](#a-pretty-secure-and-usable-linux-distribution) !
 
 <br />
 
@@ -34,7 +34,9 @@ A la première ouverture de session, une fenêtre s'ouvre pour suggérer plusieu
 1. Activer le [pare-feu](#pare-feu-par-défaut)
 2. Paramétrer les [mises à jour et sources de logiciels](#mises-à-jour-et-sources-de-logiciels)
 3. Choisir le bon [pilote de carte graphique](#pilote-de-la-carte-graphique)
-4. Et enfin régler la mise en veille et extinction de l'écran
+4. Et enfin [régler la mise en veille et extinction](#gestion-de-la-mise-en-veille) de l'écran
+
+Pour les autres sujets (personnalisation, sécurisation, ...), je m'y suis attaqué en fonction de mon temps libre et de mes envies. Vous pouvez retrouver ces catégories via la table des matières générée par GitHub.
 
 ### Pare-feu par défaut
 Le pare-feu fourni par défaut avec Linux Mint est [ufw](https://help.ubuntu.com/community/UFW) avec son interface graphique [Gufw](https://help.ubuntu.com/community/Gufw). Comme son nom l'indique, ufw (Uncomplicated Firewall) est fait pour être simple d'usage. La simple activation de ce pare-feu répond aux besoins de l'utilisateur moyen hors entreprise. Pour l'activer il faut se rendre dans le menu `Paramètres` > `Configuration du pare-feu` ; ce réglage étant réservé aux utilisateurs habilités, il faut donc saisir son mot de passe.
@@ -62,6 +64,53 @@ Pour ce faire il faut se rendre dans le menu `Système` > `Gestionnaire de pilot
 ### Gestion de la mise en veille
 L'un des paramétrages que j'effectue en premier sur un nouveau système est la gestion de l'extinction de l'écran et de la mise en veille. Je déteste retrouver mon PC éteint alors que j'avais lancé un téléchargement, script, etc. Personnellement je n’aime pas avoir de mise en veille automatique, cependant je veux éteindre l’écran au bout de 5 minutes d’absence (avec verrouillage de la session). Sur Linux Mint c'est assez facile, il faut cliquer sur l’icône d'un éclair dans la barre de menu puis choisir `Paramètre du gestionnaire d'alimentation`. Au niveau de l'onglet `Général` de la fenêtre qui s'ouvre, je sélectionne `Ne rien faire` pour chaque option afin qu'aucun bouton ne déclenche la mise en veille. Dans l'onglet `Écran` j'active la gestion de l'alimentation de celui-ci, et je choisi d'éteindre l'écran après 5 minutes d'inactivité (ce qui correspond à l'option `Écran vide après`) ; je règle à `Jamais` pour le reste. Enfin dans l'onglet `Sécurité` j'active le verrouillage automatique de l'écran quand l'économiseur d'écran se déclenche, avec 1 seconde de différé.
 
+## Sécurisation du système
+### Bac à sable d'application
+#### Introduction à la notion de bac à sable
+Un bac à sable permet de ne fournir à une application que ce dont elle a besoin pour fonctionner, sans pouvoir accéder à toutes les fonctions du système d'exploitation ce qui limite le risque de failles de sécurité. A titre d'illustration il est ainsi possible de :
+- cloisonner l'accès aux documents de l'utilisateur (`/home/[utilisateur]/Documents`)
+- masquer le contenu réel de certains dossier comme `/dev`, `/proc`, ... (CF cette [documentation](https://linuxhandbook.com/linux-directory-structure/) pour le détail de l'arborescence Linux)
+- empêcher l'accès au réseau à une application qui n'en a pas besoin
+- si l'application doit accéder au réseau, lui créer une nouvelle pile réseau propre afin de l'empêcher de voir les autres communications
+- donner une vue virtuelle du kernel partagé
+- ...
+
+Voici deux solutions de type bac à sable très connues et recommandées notamment par l'ANSSI dans le guide de [configuration GNU/Linux](https://www.ssi.gouv.fr/uploads/2016/01/linux_configuration-fr-v1.2.pdf) :
+- [AppArmor](https://gitlab.com/apparmor/apparmor/-/wikis/GettingStarted)
+- [SELinux](https://selinuxproject.org/page/Main_Page)
+
+Cependant bien que je sois relativement attentif à la sécurité, ces solutions me paraissent "overkill" (dans le sens trop complexe à mettre en place et trop limitant au regard de mon [modèle de menace](https://fr.wikipedia.org/wiki/Mod%C3%A8le_de_menace)) pour un usage domestique.
+
+#### Firejail
+Lors d'un essai de Manjaro, j'ai découvert [Firejail](https://firejail.wordpress.com/) qui est recommandé dans le [wiki sécurité](https://wiki.manjaro.org/index.php/Linux_Security#Sandboxing) de la distribution. Il s'agit depuis de la solution de bac à sable que j'utilise au quotidien. Son utilisation est très simple puisque de nombreux profils d'application existent, et hormis une application en particulier (VSCodium) je n'ai jamais rencontré de soucis avec. Il existe d'ailleurs un petit [guide pour Linux Mint](https://firejail.wordpress.com/2017/05/15/linux-mint-sandboxing-guide/) permettant de mieux appréhender son fonctionnement et sa simplicité pour l'utilisateur.
+
+Pour le mettre en oeuvre il suffit d'installer les paquets suivants (via la logithèque en mode graphique ou le terminal avec `sudo apt install [nom du paquet]`) :
+
+| Paquet | Objet |
+| --- | --- |
+| Firejail | Le bac à sable en lui-même |
+| firejail-profiles | Des profils supplémentaires à ceux de base pour une prise en charge de plus d'application par défaut |
+| Firetools | L'interface graphique de Firejail pour voir les bacs à sable, lancer une application, ... |
+
+Point d'attention lors de l'installation d'une nouvelle application, afin que celle-ci soit prise en compte par Firejail (si un profil correspondant existe), il faut exécuter la commande `sudo firecfg`. Si aucun profil n'existe, on peut lancer l'application depuis l'interface Firetools après avoir défini les contraintes :
+
+![Copie d'écran configuration Firejail](./assets/images/copie_ecran_firetools_01.png)
+
+Ou bien rédiger un profil spécifique dans `~/.config/firejail/` à l'aide de la [documentation dédiée](https://firejail.wordpress.com/documentation-2/building-custom-profiles/).
+
+Comme indiqué précédemment la prise en compte d'une nouvelle application est manuelle ; il est possible d'automatiser cela grâce à un crochet post-installation dont le but sera d'exécuter la commande `sudo firecfg` après chaque nouvelle installation. Voici comment procéder ([source](https://www.cyberciti.biz/faq/debian-ubuntu-linux-hook-a-script-command-to-apt-get-upgrade-command/)) :
+1. Créer un fichier dans `/etc/apt/apt.conf.d/` (intitulé "100install" pour ma part)
+2. Dans ce fichier mettre le contenu suivant :
+```bash
+# Script personnalisé pour exécuter des commandes après l'invocation de dpkg ou apt
+DPkg::Post-Invoke {"/usr/bin/firecfg";};
+```
+
+Après une installation on constate bien que le fichier créé est pris en compte par `apt` :
+
+![Copie d'écran d'une installation avec crochet personnalisé](./assets/images/copie_ecran_firejail_post_invoke_01.png)
+
+:warning: Avec la mise en place de ce crochet, l'installation au travers du Gestionnaire de mises à jour (en mode graphique donc) semble ne plus fonctionner. Cependant comme j'utilise plutôt la ligne de commande je n'ai pas cherché de solution à ce problème.
 
 <br />
 <br />

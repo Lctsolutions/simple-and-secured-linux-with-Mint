@@ -158,6 +158,13 @@ echo "menuentry '$(echo "$os" | grub_quote)' --unrestricted ${CLASS} \$menuentry
 
 Au prochain démarrage du système, toutes les entrées sauf celle du système courant nécessiteront une authentification. Cette méthode permet de ne pas éditer le fichier `grub.cfg` après chaque mise à jour du noyau :thumbsup: ([source](https://askubuntu.com/questions/1088215/grub-2-avoid-unrestricted-boot-options-are-overwritten-with-kernel-updates)).
 
+### Protéger l'accès au BIOS/EFI
+Protéger l'accès au bootloader est une bonne chose mais ce n'est pas forcément suffisant. En effet même si votre disque est chiffré et que le bootloader empêche désormais d'accéder à certaines options à moins de s'authentifier (si vous avez suivi les recommandations précédentes :wink:), il reste possible d'insérer une clé USB et de démarrer un système tiers sur la machine. Bien que les données du système ne sont pas accessible grâce au chiffrement la partition `/boot` l'est (afin de lire le nécessaire pour démarrer). La phase de démarrage pourrait ainsi être altérée avec un [enregistreur de frappe](https://fr.wikipedia.org/wiki/Enregistreur_de_frappe) (keylogger) par exemple. On peut tout à fait empêcher ceci en mettant une authentification sur le BIOS/UEFI ; ainsi pour changer la partition par défaut de démarrage il faudra saisir l'identifiant dédié.
+
+Ici je n'aurai pas d'instruction précise à donner car cela dépend de la carte mère, du fait d'avoir un BIOS ou un EFI, ... L'option se retrouve généralement dans un menu sécurité avec la possibilité de mettre un mot de passe. Référez-vous au manuel de votre carte mère / PC livré / recherche internet ...
+
+Il existe la possibilité de chiffrer la partition boot comme indiqué [ici](https://cryptsetup-team.pages.debian.net/cryptsetup/encrypted-boot.html). Ceci implique notamment de rétrograder la version de [LUKS](https://fr.wikipedia.org/wiki/LUKS) avec un risque en terme de sécurité non négligeable. Pour ma part je pense que le combo bootlader + BIOS/UEFI protégé est suffisant ; je compte cependant pour m'amuser développer une solution pour contrôler l'intégrité de la partition `/boot`.
+
 <br />
 <br />
 TODO: reporter et reformuler le dépôt privé pour ajouter les différentes sections ici au fur et à mesure

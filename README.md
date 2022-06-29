@@ -306,6 +306,8 @@ maldet(64069): {mon} scanned 77 new/changed files with native engine
 maldet(64069): {mon} scanned 21 new/changed files with native engine
 ```
 
+:warning: Afin que la surveillance persiste suite à redémarrage, il faut compléter le fichier `/usr/local/maldetect/monitor_paths` (une ligne par emplacement).
+
 <br />
 <br />
 TODO: reporter et reformuler le dépôt privé pour ajouter les différentes sections ici au fur et à mesure

@@ -165,6 +165,147 @@ Ici je n'aurai pas d'instruction précise à donner car cela dépend de la carte
 
 Il existe la possibilité de chiffrer la partition boot comme indiqué [ici](https://cryptsetup-team.pages.debian.net/cryptsetup/encrypted-boot.html). Ceci implique notamment de rétrograder la version de [LUKS](https://fr.wikipedia.org/wiki/LUKS) avec un risque en terme de sécurité non négligeable. Pour ma part je pense que le combo bootlader + BIOS/UEFI protégé est suffisant ; je compte cependant pour m'amuser développer une solution pour contrôler l'intégrité de la partition `/boot`.
 
+### Détecter les malwares avec LMD
+[Linux Malware Detect](https://www.rfxn.com/projects/linux-malware-detect/) est un détecteur de malware créé par R-FX networks dans l'optique de mieux identifier les menaces au niveau utilisateur (et plus particulièrement dans le cadre d'un environnement partagé comme des serveurs mutualisés). Effectivement selon R-FX les antivirus connus (**sur Linux**) semblent peu efficients face à de plus en plus de menaces utilisant l'environnement utilisateur comme vecteur d'attaque, d'où la création de ce projet.
+
+#### Installation
+L'installation de LMD se fait directement via le site du projet pour disposer de la version la plus récente. Ci-dessous les commandes afin de télécharger l'archive actuelle (version 1.6.4 au moment de la rédaction de cette documentation), la décompresser puis lancer l'installation :
+
+```console
+~/Téléchargements$ wget https://www.rfxn.com/downloads/maldetect-current.tar.gz
+--2022-06-29 11:07:03--  https://www.rfxn.com/downloads/maldetect-current.tar.gz
+Resolving www.rfxn.com (www.rfxn.com)... 104.21.28.71, 172.67.144.156, 2606:4700:3034::6815:1c47, ...
+Connecting to www.rfxn.com (www.rfxn.com)|104.21.28.71|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 1549126 (1,5M) [application/x-gzip]
+Saving to: ‘maldetect-current.tar.gz’
+
+maldetect-current.tar.gz      100%[==============================================>]   1,48M  3,89MB/s    in 0,4s    
+
+2022-06-29 11:07:04 (3,89 MB/s) - ‘maldetect-current.tar.gz’ saved [1549126/1549126]
+
+/Téléchargements$ tar -xvf maldetect-current.tar.gz 
+maldetect-1.6.4/
+maldetect-1.6.4/cron.daily
+maldetect-1.6.4/README
+maldetect-1.6.4/files/
+maldetect-1.6.4/files/maldet.1
+maldetect-1.6.4/files/internals/
+maldetect-1.6.4/files/internals/scan.etpl
+maldetect-1.6.4/files/internals/internals.conf
+maldetect-1.6.4/files/internals/importconf
+maldetect-1.6.4/files/internals/functions
+maldetect-1.6.4/files/internals/hexstring.pl
+maldetect-1.6.4/files/internals/tlog
+maldetect-1.6.4/files/internals/compat.conf
+maldetect-1.6.4/files/internals/hexfifo.pl
+maldetect-1.6.4/files/service/
+maldetect-1.6.4/files/service/maldet.service
+maldetect-1.6.4/files/service/maldet.sh
+maldetect-1.6.4/files/service/maldet.sysconfig
+maldetect-1.6.4/files/hookscan.sh
+maldetect-1.6.4/files/ignore_paths
+maldetect-1.6.4/files/conf.maldet.cron
+maldetect-1.6.4/files/maldet
+maldetect-1.6.4/files/ignore_file_ext
+maldetect-1.6.4/files/sess/
+maldetect-1.6.4/files/cron/
+maldetect-1.6.4/files/cron/conf.maldet.cron
+maldetect-1.6.4/files/cron/custom.cron
+maldetect-1.6.4/files/VERSION.hash
+maldetect-1.6.4/files/uninstall.sh
+maldetect-1.6.4/files/modsec.sh
+maldetect-1.6.4/files/clean/
+maldetect-1.6.4/files/clean/php_malware_hexinject
+maldetect-1.6.4/files/clean/php.brute.bf1lic
+maldetect-1.6.4/files/clean/base64.inject.unclassed
+maldetect-1.6.4/files/clean/php.malware.magentocore_ccskim
+maldetect-1.6.4/files/clean/js.inject.fakejquery02
+maldetect-1.6.4/files/clean/js.inject.VisitorTracker
+maldetect-1.6.4/files/clean/gzbase64.inject.unclassed
+maldetect-1.6.4/files/ignore_sigs
+maldetect-1.6.4/files/conf.maldet
+maldetect-1.6.4/files/ignore_inotify
+maldetect-1.6.4/files/sigs/
+maldetect-1.6.4/files/sigs/hex.dat
+maldetect-1.6.4/files/sigs/rfxn.yara
+maldetect-1.6.4/files/sigs/rfxn.ndb
+maldetect-1.6.4/files/sigs/rfxn.hdb
+maldetect-1.6.4/files/sigs/md5v2.dat
+maldetect-1.6.4/files/sigs/maldet.sigs.ver
+maldetect-1.6.4/files/sigs/md5.dat
+maldetect-1.6.4/files/sigs/rfxn.yara.bk
+maldetect-1.6.4/files/sigs/appver/
+maldetect-1.6.4/files/sigs/appver/wordpress.ver
+maldetect-1.6.4/files/monitor_paths
+maldetect-1.6.4/CHANGELOG
+maldetect-1.6.4/CHANGELOG.VARIABLES
+maldetect-1.6.4/COPYING.GPL
+maldetect-1.6.4/CHANGELOG.RELEASE
+maldetect-1.6.4/cron.d.pub
+maldetect-1.6.4/.ca.def
+maldetect-1.6.4/install.sh
+
+~/Téléchargements$ sudo sh maldetect-1.6.4/install.sh
+```
+
+#### Configuration
+Le fichier de configuration de LMD se situe ici `/usr/local/maldetect/conf.maldet` ; il est très bien commenté ce qui permet de ne pas avoir besoin de documentation annexe. J'ai personnalisé les éléments suivants :
+
+- `scan_max_filesize` afin de scanner des fichiers plus volumineux que les 2048k prévus par défaut
+- `scan_clamscan` comme je n'utilise pas [Clamav](https://www.clamav.net/)
+- `scan_cpunice` et `scan_ionice` afin d'avoir une priorité plus importante accordé au processus lors d'un scan
+
+Je recommande vivement de laisser les mises à jour des signatures et de l'outil activées par défaut.
+
+#### Utilisation
+Le fonctionnement de LMD et les différentes commandes disponibles sont détaillés [ici](https://www.rfxn.com/appdocs/README.maldetect).
+
+#### Surveillance en temps réel
+Il est possible de surveiller en temps réel les modifications apportées à différents utilisateurs/chemins/fichiers précis afin de procéder à des scans réguliers en arrière plan. Pour ce faire LMD utilise [inotify](https://www.man7.org/linux/man-pages/man7/inotify.7.html), ce qui peut nécessiter une installation en préalable à l'utilisation de l'option `-m` : `sudo apt install inotify-tools`.
+
+Ensuite le lancement de la surveillance se fait comme suit (ici sur mon dossier personnel, des dossiers temporaires et la [mémoire partagée](https://www.lojiciels.com/quest-ce-quun-segment-de-memoire-partagee-sous-linux/)) :
+
+```console
+~$ sudo maldet -m /home/[USER]/,/tmp,/var/tmp,/dev/shm
+Linux Malware Detect v1.6.4
+            (C) 2002-2019, R-fx Networks <proj@rfxn.com>
+            (C) 2019, Ryan MacDonald <ryan@rfxn.com>
+This program may be freely redistributed under the terms of the GNU GPL v2
+
+maldet(64069): {mon} added /home/[USER]/ to inotify monitoring array
+maldet(64069): {mon} added /tmp to inotify monitoring array
+maldet(64069): {mon} added /var/tmp to inotify monitoring array
+maldet(64069): {mon} added /dev/shm to inotify monitoring array
+maldet(64069): {mon} starting inotify process on 4 paths, this might take awhile...
+maldet(64069): {mon} inotify startup successful (pid: 64189)
+maldet(64069): {mon} inotify monitoring log: /usr/local/maldetect/logs/inotify_log
+```
+
+Si l'on consulte les logs on peut vérifier que la surveillance est en cours et que des scans de fichiers modifiés se font régulièrement :
+
+```console
+sudo maldet -l
+Linux Malware Detect v1.6.4
+            (C) 2002-2019, R-fx Networks <proj@rfxn.com>
+            (C) 2019, Ryan MacDonald <ryan@rfxn.com>
+This program may be freely redistributed under the terms of the GNU GPL v2
+
+Viewing last 50 lines from /usr/local/maldetect/logs/event_log:
+maldet(64069): {mon} added /home/[USER]/ to inotify monitoring array
+maldet(64069): {mon} added /tmp to inotify monitoring array
+maldet(64069): {mon} added /var/tmp to inotify monitoring array
+maldet(64069): {mon} added /dev/shm to inotify monitoring array
+maldet(64069): {mon} starting inotify process on 4 paths, this might take awhile...
+maldet(64069): {mon} inotify startup successful (pid: 64189)
+maldet(64069): {mon} inotify monitoring log: /usr/local/maldetect/logs/inotify_log
+maldet(64069): {mon} scanned 50 new/changed files with native engine
+maldet(64069): {mon} scanned 39 new/changed files with native engine
+maldet(64069): {mon} scanned 47 new/changed files with native engine
+maldet(64069): {mon} scanned 77 new/changed files with native engine
+maldet(64069): {mon} scanned 21 new/changed files with native engine
+```
+
 <br />
 <br />
 TODO: reporter et reformuler le dépôt privé pour ajouter les différentes sections ici au fur et à mesure
